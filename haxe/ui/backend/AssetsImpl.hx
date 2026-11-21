@@ -20,8 +20,12 @@ class AssetsImpl extends AssetsBase {
         var frame:FlxFrame = null;
         
         if (Assets.exists(resourceId)) {
-            graphic = FlxGraphic.fromAssetKey(resourceId);
-            frame = FlxImageFrame.fromGraphic(graphic).frame;            
+            // Cache=false: FlxG.bitmap is cleared on every state switch, which
+            // would destroy the graphic while haxe.ui's ToolkitAssets keeps
+            // serving the stale ImageInfo (missing textures on re-entry).
+            graphic = FlxGraphic.fromAssetKey(resourceId, false, null, false);
+            var assetFrame = graphic != null ? FlxImageFrame.fromGraphic(graphic) : null;
+            frame = assetFrame != null ? assetFrame.frame : null; 
         }
         
         if (frame != null) {
@@ -51,7 +55,11 @@ class AssetsImpl extends AssetsBase {
         var loader:Loader = new Loader();
         loader.contentLoaderInfo.addEventListener(Event.COMPLETE, function(e) {
             if (loader.content != null) {
-                var frame = FlxImageFrame.fromImage(cast(loader.content, Bitmap).bitmapData).frame;
+                // Uncached graphic for the same reason as getImageInternal —
+                // survives FlxG.bitmap cache clears between states.
+                var graphic = FlxGraphic.fromBitmapData(cast(loader.content, Bitmap).bitmapData, false, null, false);
+                var byteFrame = graphic != null ? FlxImageFrame.fromGraphic(graphic) : null;
+                var frame = byteFrame != null ? byteFrame.frame : null;
                 frame.parent.persist = true; // these two booleans will screw up the UI unless changed from the default values
                 frame.parent.destroyOnNoUse = false;
                 callback({
