@@ -3,8 +3,8 @@ package haxe.ui.backend;
 import flixel.FlxBasic;
 import flixel.FlxG;
 import flixel.FlxSprite;
-import flixel.group.FlxGroup;
-import flixel.group.FlxSpriteGroup;
+import flixel.group.FlxGroup.FlxTypedGroup;
+import flixel.group.FlxSpriteGroup.FlxTypedSpriteGroup;
 import haxe.ui.Toolkit;
 import haxe.ui.backend.flixel.CursorHelper;
 import haxe.ui.backend.flixel.KeyboardHelper;
@@ -169,9 +169,9 @@ class ScreenImpl extends ScreenBase {
 
     private var _cursor:String = null;
     public function setCursor(cursor:String, offsetX:Null<Int> = null, offsetY:Null<Int> = null) {
-        #if (haxeui_flixel_no_custom_cursors || FLX_NO_MOUSE)
+        #if haxeui_flixel_no_custom_cursors
         return;
-        #else
+        #end
 
         if (!CursorHelper.useCustomCursors) {
             return;
@@ -190,7 +190,6 @@ class ScreenImpl extends ScreenBase {
         } else {
             FlxG.mouse.load(null);
         }
-        #end
     }
 
     public override function addComponent(component:Component):Component {
@@ -276,17 +275,12 @@ class ScreenImpl extends ScreenBase {
 
     private override function handleSetComponentIndex(child:Component, index:Int) {
         var offset = 0;
-        StateHelper.currentState.forEach((item) -> {
-            offset++;
-        });        
-        /* see: https://github.com/haxeui/haxeui-flixel/issues/61
         for (i in 0...StateHelper.currentState.length) {
             if ((StateHelper.currentState.members[i] is Component)) {
                 offset = i;
                 break;
             }
         }
-        */    
 
         StateHelper.currentState.remove(child, true);
         StateHelper.currentState.insert(index + offset, child);

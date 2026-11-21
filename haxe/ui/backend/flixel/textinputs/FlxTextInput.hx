@@ -1,14 +1,13 @@
 package haxe.ui.backend.flixel.textinputs;
 
 import flixel.FlxSprite;
-import flixel.text.FlxInputText;
-import flixel.util.FlxColor;
 import haxe.ui.backend.TextInputImpl.TextInputEvent;
 import haxe.ui.core.Component;
 import openfl.events.Event;
 import openfl.events.KeyboardEvent;
 
-#if (flixel >= "5.9.0")
+#if flixel_text_input
+
 class FlxTextInput extends TextBase {
     public static var USE_ON_ADDED:Bool = false;
     public static var USE_ON_REMOVED:Bool = false;
@@ -16,24 +15,25 @@ class FlxTextInput extends TextBase {
     private static inline var PADDING_X:Int = 4;
     private static inline var PADDING_Y:Int = 2;
 
-    private var tf:FlxInputText;
+    private var tf:flixel.addons.text.FlxTextInput;
 
     public function new() {
         super();
-        tf = new FlxInputText(0, 0, 0, null, 8, FlxColor.BLACK, FlxColor.TRANSPARENT);
-        tf.onTextChange.add(onInternalChange);
-        tf.onScrollChange.add(onScroll);
+        tf = new flixel.addons.text.FlxTextInput();
+        tf.onChange.add(onInternalChange);
+        tf.onScroll.add(onScroll);
         tf.pixelPerfectRender = true;
+        tf.moves = false;
         _inputData.vscrollPageStep = 1;
         _inputData.vscrollNativeWheel = true;
     }
 
     public override function focus() {
-        tf.startFocus();
+        tf.focus = true;
     }
     
     public override function blur() {
-        tf.endFocus();
+        tf.focus = false;
     }
 
     public function attach() {
@@ -184,23 +184,21 @@ class FlxTextInput extends TextBase {
 
         if (tf.multiline != _displayData.multiline) {
             tf.multiline = _displayData.multiline;
-            // `multiline` only decides whether the user can add new lines,
-            // so measuring the text is not required.
-        }
-
-        if (tf.passwordMode != _inputData.password) {
-            tf.passwordMode = _inputData.password;
             measureTextRequired = true;
         }
 
-        tf.editable = !parentComponent.disabled;
+        if (tf.displayAsPassword != _inputData.password) {
+            tf.displayAsPassword = _inputData.password;
+        }
+
+        tf.type = (parentComponent.disabled ? DYNAMIC : INPUT);
 
         return measureTextRequired;
     }
 
     private override function validatePosition() {
         _left = Math.round(_left * Toolkit.scaleX);
-        _top = Math.round(_top * Toolkit.scaleY);
+        _top = Math.round(_top * Toolkit.scaleY) + (PADDING_Y / 2);
     }
 
     private override function validateDisplay() {
@@ -302,16 +300,16 @@ class FlxTextInput extends TextBase {
     public var onChange(null, set):TextInputEvent->Void;
     private function set_onChange(value:TextInputEvent->Void):TextInputEvent->Void {
         if (_onChange != null) {
-            tf.onTextChange.remove(__onTextInputChangeEvent);
+            tf.onChange.remove(__onTextInputChangeEvent);
         }
         _onChange = value;
         if (_onChange != null) {
-            tf.onTextChange.add(__onTextInputChangeEvent);
+            tf.onChange.add(__onTextInputChangeEvent);
         }
         return value;
     }
 
-    private function __onTextInputChangeEvent(text:String, action:FlxInputTextChange) {
+    private function __onTextInputChangeEvent() {
         if (_onChange != null) {
             _onChange({
                 type: "change",
@@ -361,7 +359,7 @@ class FlxTextInput extends TextBase {
     }
     */
 
-    private function onInternalChange(text:String, action:FlxInputTextChange) {
+    private function onInternalChange() {
         _text = tf.text;
         
         measureText();
@@ -370,8 +368,8 @@ class FlxTextInput extends TextBase {
             _inputData.onChangedCallback();
         }
     }
-
-    private function onScroll(scrollH:Int, scrollV:Int) {
+    
+    private function onScroll() {
         _inputData.hscrollPos = tf.scrollH;
         _inputData.vscrollPos = tf.scrollV - 1;
         
@@ -390,9 +388,10 @@ class FlxTextInput extends TextBase {
 
     public function destroy(component:Component) {
         tf.visible = false;
-        component.remove(tf, true);
+        component.remove(tf);
         tf.destroy();
         tf = null;
     }
 }
+
 #end

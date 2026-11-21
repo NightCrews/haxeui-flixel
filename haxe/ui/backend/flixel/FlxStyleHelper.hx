@@ -188,10 +188,11 @@ class FlxStyleHelper {
         }
         
         if (style.backgroundImage != null) {
-            painted = true;
             Toolkit.assets.getImage(style.backgroundImage, function(info:ImageInfo) {
                 if (info != null && info.data != null) {
                     paintBackroundImage(sprite, info.data, style);
+
+                    painted = true;
                 }
             });
         }
